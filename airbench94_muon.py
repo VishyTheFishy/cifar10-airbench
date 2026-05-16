@@ -9,6 +9,7 @@ Descends from https://github.com/tysam-code/hlb-CIFAR10/blob/main/main.py
 #############################################
 
 import os
+import random
 import sys
 with open(sys.argv[0]) as f:
     code = f.read()
