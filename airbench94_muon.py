@@ -66,11 +66,11 @@ def targeted_newtonschulz5(G, steps:int, tau: float = 1.):
     projTop = 0.5 * (I + signedM)
     nsX = zeropower_via_newtonschulz5(X, steps)
     nsBot = projBot @ nsX + projTop @ X
-    nsTop = projTop @ nsX + projBot @ X
+    #nsTop = projTop @ nsX + projBot @ X
     if G.size(-1) > G.size(-2):
         nsBot = nsBot.mT
         nsTop = nsTop.mT
-    return (nsBot, nsTop)
+    return nsBot #(nsBot, nsTop)
 
 class Muon(torch.optim.Optimizer):
     def __init__(self, params, lr=1e-3, momentum=0, nesterov=False):
@@ -100,7 +100,7 @@ class Muon(torch.optim.Optimizer):
                 g = g.add(buf, alpha=momentum) if group["nesterov"] else buf
 
                 p.data.mul_(len(p.data)**0.5 / p.data.norm()) # normalize the weight
-                update = zeropower_via_newtonschulz5(g.reshape(len(g), -1)).view(g.shape) # whiten the update
+                update = targeted_newtonschulz5(g.reshape(len(g), -1)).view(g.shape) # whiten the update
                 p.data.add_(update, alpha=-lr) # take a step
 
 #############################################
@@ -458,7 +458,7 @@ if __name__ == "__main__":
 
     print_columns(logging_columns_list, is_head=True)
     main("warmup", model)
-    accs = torch.tensor([main(run, model) for run in range(200)])
+    accs = torch.tensor([main(run, model) for run in range(10)])
     print("Mean: %.4f    Std: %.4f" % (accs.mean(), accs.std()))
 
     log_dir = os.path.join("logs", str(uuid.uuid4()))
