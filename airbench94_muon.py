@@ -4,7 +4,6 @@ Runs in 2.59 seconds on a 400W NVIDIA A100 using torch==2.4.1
 Attains 94.01 mean accuracy (n=200 trials)
 Descends from https://github.com/tysam-code/hlb-CIFAR10/blob/main/main.py
 """
-
 #############################################
 #                  Setup                    #
 #############################################
@@ -83,26 +82,60 @@ class Muon(torch.optim.Optimizer):
         defaults = dict(lr=lr, momentum=momentum, nesterov=nesterov)
         super().__init__(params, defaults)
 
-    def step(self):
-        for group in self.param_groups:
-            lr = group["lr"]
-            momentum = group["momentum"]
-            for p in group["params"]:
-                g = p.grad
-                if g is None:
-                    continue
-                state = self.state[p]
-
-                if "momentum_buffer" not in state.keys():
-                    state["momentum_buffer"] = torch.zeros_like(g)
-                buf = state["momentum_buffer"]
-                buf.mul_(momentum).add_(g)
-                g = g.add(buf, alpha=momentum) if group["nesterov"] else buf
-
-                p.data.mul_(len(p.data)**0.5 / p.data.norm()) # normalize the weight
-                update = zeropower_via_newtonschulz5(g.reshape(len(g), -1)).view(g.shape) # whiten the update
-                p.data.add_(update, alpha=-lr) # take a step
-
+    def step(self, svd_prob=0.05):
+            """
+            svd_prob (float): Probability of tracking the spectra on this step. 
+                              0.1 means roughly 10% of the steps in an epoch.
+            """
+            track_svd_this_step = random.random() < svd_prob
+    
+            for group in self.param_groups:
+                lr = group["lr"]
+                momentum = group["momentum"]
+                for p in group["params"]:
+                    g = p.grad
+                    if g is None:
+                        continue
+                    
+                    state = self.state[p]
+    
+                    if track_svd_this_step:
+                        orig_g_mat = p.grad.reshape(len(p.grad), -1).float()
+                        orig_g_spectrum = torch.linalg.svdvals(orig_g_mat)
+    
+                    if "momentum_buffer" not in state.keys():
+                        state["momentum_buffer"] = torch.zeros_like(g)
+                    buf = state["momentum_buffer"]
+                    buf.mul_(momentum).add_(g)
+                    g = g.add(buf, alpha=momentum) if group["nesterov"] else buf
+    
+                    p.data.mul_(len(p.data)**0.5 / p.data.norm()) # normalize the weight
+                    
+                    # 2. Conditionally calculate spectrum of the param matrix
+                    if track_svd_this_step:
+                        p_mat = p.data.reshape(len(p.data), -1).float()
+                        p_spectrum = torch.linalg.svdvals(p_mat)
+    
+                    update = zeropower_via_newtonschulz5(g.reshape(len(g), -1)).view(g.shape) # whiten the update
+                    
+                    if track_svd_this_step:
+                        update_mat = update.reshape(len(update), -1).float()
+                        update_spectrum = torch.linalg.svdvals(update_mat)
+    
+                        # Initialize lists if they don't exist
+                        if "spectra_history" not in state:
+                            state["spectra_history"] = {
+                                "orig_grad": [],
+                                "param": [],
+                                "update": []
+                            }
+                        
+                        # Detach, move to CPU, and append
+                        state["spectra_history"]["orig_grad"].append(orig_g_spectrum.detach().cpu())
+                        state["spectra_history"]["param"].append(p_spectrum.detach().cpu())
+                        state["spectra_history"]["update"].append(update_spectrum.detach().cpu())
+    
+                    p.data.add_(update, alpha=-lr) # take a step
 #############################################
 #                DataLoader                 #
 #############################################
@@ -427,6 +460,36 @@ def main(run, model):
             if step >= total_train_steps:
                 break
         stop_timer()
+        
+        epoch_spectra_data = {}
+
+        for name, param in model.named_parameters():
+            if param in optimizer2.state:
+                state = optimizer2.state[param]
+                
+                if "spectra_history" in state and len(state["spectra_history"]["orig_grad"]) > 0:
+                    
+                    # Concatenate into full distributions
+                    full_dist_grad = torch.cat(state["spectra_history"]["orig_grad"])
+                    full_dist_param = torch.cat(state["spectra_history"]["param"])
+                    full_dist_update = torch.cat(state["spectra_history"]["update"])
+                    
+                    # Store in our dictionary
+                    epoch_spectra_data[name] = {
+                        "grad": full_dist_grad,
+                        "param": full_dist_param,
+                        "update": full_dist_update
+                    }
+                    
+                    # Clear the lists for the next epoch
+                    state["spectra_history"]["orig_grad"].clear()
+                    state["spectra_history"]["param"].clear()
+                    state["spectra_history"]["update"].clear()
+        
+        # Save the dictionary to disk
+        if epoch_spectra_data:
+            torch.save(epoch_spectra_data, f"spectra_data_epoch_{epoch}.pt")
+            print(f"Saved spectra data to spectra_data_epoch_{epoch}.pt")
 
         ####################
         #    Evaluation    #
