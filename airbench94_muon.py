@@ -56,7 +56,7 @@ def zeropower_via_newtonschulz5(G, steps=3, eps=1e-7):
 def targeted_newtonschulz5(G, steps:int, tau: float = 1.):
     assert G.ndim >= 2
     X = G.bfloat16()
-        if G.size(-1) > G.size(-2):
+    if G.size(-1) > G.size(-2):
         X = X.mT
     n = X.size(-1)
     I = torch.eye(n, dtype=X.dtype, device=X.device) 
