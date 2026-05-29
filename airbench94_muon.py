@@ -170,7 +170,7 @@ def batch_crop(images, crop_size):
 
 class CifarLoader:
 
-    def __init__(self, path, train=True, batch_size=500, aug=None):
+    def __init__(self, path, train=True, batch_size=500, aug=None, skew=None):
         data_path = os.path.join(path, "train.pt" if train else "test.pt")
         if not os.path.exists(data_path):
             dset = torchvision.datasets.CIFAR10(path, download=True, train=train)
@@ -181,6 +181,32 @@ class CifarLoader:
         data = torch.load(data_path, map_location=torch.device("cuda"))
         self.images, self.labels, self.classes = data["images"], data["labels"], data["classes"]
         # It's faster to load+process uint8 data than to load preprocessed fp16 data
+
+        if skew is not None:
+            selected_indices = []
+    
+            for i, cls in enumerate(self.classes):
+                # Find indices for this class
+                cls_idx = (self.classes == cls).nonzero(as_tuple=True)[0]
+            
+                # Randomly sample without replacement
+                perm = torch.randperm(len(cls_idx), device=cls_idx.device)
+                n = i**(-1*skew) * len(cls_idx)
+            
+                chosen = cls_idx[perm[:n]]
+            
+                selected_indices.append(chosen)
+            
+            # Combine all selected indices
+            selected_indices = torch.cat(selected_indices)
+                    
+            # Subset tensors
+            self.images = self.images[selected_indices]
+            self.labels = self.labels[selected_indices]
+            self.classes = self.classes[selected_indices]
+        
+
+        
         self.images = (self.images.half() / 255).permute(0, 3, 1, 2).to(memory_format=torch.channels_last)
 
         self.normalize = T.Normalize(CIFAR_MEAN, CIFAR_STD)
