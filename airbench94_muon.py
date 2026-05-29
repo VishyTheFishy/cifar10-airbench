@@ -187,23 +187,20 @@ class CifarLoader:
     
             for i, cls in enumerate(self.classes):
                 # Find indices for this class
-                cls_idx = (self.classes == cls).nonzero(as_tuple=True)[0]
+                cls_idx = (self.labels == i).nonzero(as_tuple=True)[0]
             
                 # Randomly sample without replacement
                 perm = torch.randperm(len(cls_idx), device=cls_idx.device)
-                n = i**(-1*skew) * len(cls_idx)
+                n = max(int((i+1)**(-1*skew) * len(cls_idx)), 1)
             
                 chosen = cls_idx[perm[:n]]
             
                 selected_indices.append(chosen)
             
-            # Combine all selected indices
             selected_indices = torch.cat(selected_indices)
                     
-            # Subset tensors
             self.images = self.images[selected_indices]
             self.labels = self.labels[selected_indices]
-            self.classes = self.classes[selected_indices]
         
 
         
