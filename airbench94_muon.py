@@ -83,7 +83,7 @@ class Muon(torch.optim.Optimizer):
         defaults = dict(lr=lr, momentum=momentum, nesterov=nesterov)
         super().__init__(params, defaults)
 
-    def step(self, svd_prob=0.05):
+    def step(self, svd_prob=0):
             """
             svd_prob (float): Probability of tracking the spectra on this step. 
                               0.1 means roughly 10% of the steps in an epoch.
@@ -170,7 +170,7 @@ def batch_crop(images, crop_size):
 
 class CifarLoader:
 
-    def __init__(self, path, train=True, batch_size=500, aug=None, skew=None):
+    def __init__(self, path, train=True, batch_size=500, aug=None, skew=1):
         data_path = os.path.join(path, "train.pt" if train else "test.pt")
         if not os.path.exists(data_path):
             dset = torchvision.datasets.CIFAR10(path, download=True, train=train)
@@ -192,6 +192,7 @@ class CifarLoader:
                 # Randomly sample without replacement
                 perm = torch.randperm(len(cls_idx), device=cls_idx.device)
                 n = max(int((i+1)**(-1*skew) * len(cls_idx)), 1)
+                print(f"class: {cls}, count: {n}")
             
                 chosen = cls_idx[perm[:n]]
             
