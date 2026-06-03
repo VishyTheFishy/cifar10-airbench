@@ -40,7 +40,7 @@ def zeropower_via_newtonschulz5(G, steps=3, eps=1e-7):
     performance at all relative to UV^T, where USV^T = G is the SVD.
     """
     assert len(G.shape) == 2
-    a, b, c = (3.4445, -4.7750,  2.0315)
+    a, b, c = (3, -16/5, 6/5)#(3.4445, -4.7750,  2.0315)
     X = G.bfloat16()
     X = X/(X.norm() + eps) # ensure top singular value <= 1
     if G.size(0) > G.size(1):
