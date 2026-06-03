@@ -7,8 +7,6 @@ Descends from https://github.com/tysam-code/hlb-CIFAR10/blob/main/main.py
 #############################################
 #                  Setup                    #
 #############################################
-GLOBAL
-
 import os
 import random
 import sys
