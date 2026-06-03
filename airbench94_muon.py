@@ -29,7 +29,7 @@ torch.backends.cudnn.benchmark = True
 #############################################
 
 @torch.compile
-def zeropower_via_newtonschulz5(G, steps=7, eps=1e-7):
+def zeropower_via_newtonschulz5(G, steps=3, eps=1e-7):
     """
     Newton-Schulz iteration to compute the zeroth power / orthogonalization of G. We opt to use a
     quintic iteration whose coefficients are selected to maximize the slope at zero. For the purpose
@@ -40,7 +40,7 @@ def zeropower_via_newtonschulz5(G, steps=7, eps=1e-7):
     performance at all relative to UV^T, where USV^T = G is the SVD.
     """
     assert len(G.shape) == 2
-    a, b, c = (3, -16/5, 6/5)#(3.4445, -4.7750,  2.0315)
+    a, b, c = (3.4445, -4.7750,  2.0315)#(3, -16/5, 6/5)
     X = G.bfloat16()
     X = X/(X.norm() + eps) # ensure top singular value <= 1
     if G.size(0) > G.size(1):
@@ -53,7 +53,7 @@ def zeropower_via_newtonschulz5(G, steps=7, eps=1e-7):
         X = X.T
     return X
     
-def targeted_newtonschulz5(G, steps:int = 7, tau: float = 1):
+def targeted_newtonschulz5(G, steps:int = 3, tau: float = 1):
     assert G.ndim >= 2
     X = G.bfloat16()
     if G.size(-1) > G.size(-2):
