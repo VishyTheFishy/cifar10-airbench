@@ -7,6 +7,7 @@ Descends from https://github.com/tysam-code/hlb-CIFAR10/blob/main/main.py
 #############################################
 #                  Setup                    #
 #############################################
+GLOBAL
 
 import os
 import random
@@ -53,7 +54,7 @@ def zeropower_via_newtonschulz5(G, steps=3, eps=1e-7):
         X = X.T
     return X
     
-def targeted_newtonschulz5(G, steps:int = 7, tau: float = 1):
+def targeted_newtonschulz5(G, steps:int = 7, tau: float = TAU):
     assert G.ndim >= 2
     X = G.bfloat16()
     if G.size(-1) > G.size(-2):
@@ -541,17 +542,18 @@ def main(run, model):
 if __name__ == "__main__":
 
     # We re-use the compiled model between runs to save the non-data-dependent compilation time
-    model = CifarNet().cuda().to(memory_format=torch.channels_last)
-    model.compile(mode="max-autotune")
-
-    print_columns(logging_columns_list, is_head=True)
-    main("warmup", model)
-    accs = torch.tensor([main(run, model) for run in range(20)])
-    print("Mean: %.4f    Std: %.4f" % (accs.mean(), accs.std()))
-
-    log_dir = os.path.join("logs", str(uuid.uuid4()))
-    os.makedirs(log_dir, exist_ok=True)
-    log_path = os.path.join(log_dir, "log.pt")
-    torch.save(dict(code=code, accs=accs), log_path)
-    print(os.path.abspath(log_path))
+    for TAU in (.1, .5, 1., 5., 10.):
+        model = CifarNet().cuda().to(memory_format=torch.channels_last)
+        model.compile(mode="max-autotune")
+    
+        print_columns(logging_columns_list, is_head=True)
+        main("warmup", model)
+        accs = torch.tensor([main(run, model) for run in range(20)])
+        print("Mean: %.4f    Std: %.4f" % (accs.mean(), accs.std()))
+    
+        log_dir = os.path.join("logs", str(uuid.uuid4()))
+        os.makedirs(log_dir, exist_ok=True)
+        log_path = os.path.join(log_dir, "log.pt")
+        torch.save(dict(code=code, accs=accs), log_path)
+        print(os.path.abspath(log_path))
 
