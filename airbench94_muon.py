@@ -29,7 +29,7 @@ torch.backends.cudnn.benchmark = True
 #############################################
 
 @torch.compile
-def zeropower_via_newtonschulz5(G, steps=3, eps=1e-7):
+def zeropower_via_newtonschulz5(G, steps=7, eps=1e-7):
     """
     Newton-Schulz iteration to compute the zeroth power / orthogonalization of G. We opt to use a
     quintic iteration whose coefficients are selected to maximize the slope at zero. For the purpose
