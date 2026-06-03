@@ -53,7 +53,7 @@ def zeropower_via_newtonschulz5(G, steps=3, eps=1e-7):
         X = X.T
     return X
     
-def targeted_newtonschulz5(G, steps:int = 3, tau: float = 5):
+def targeted_newtonschulz5(G, steps:int = 7, tau: float = 5):
     assert G.ndim >= 2
     X = G.bfloat16()
     if G.size(-1) > G.size(-2):
@@ -117,7 +117,7 @@ class Muon(torch.optim.Optimizer):
                         p_mat = p.data.reshape(len(p.data), -1).float()
                         p_spectrum = torch.linalg.svdvals(p_mat)
     
-                    update = g #targeted_newtonschulz5(g.reshape(len(g), -1)).view(g.shape) # whiten the update
+                    update = targeted_newtonschulz5(g.reshape(len(g), -1)).view(g.shape) # whiten the update
                     
                     if track_svd_this_step:
                         update_mat = update.reshape(len(update), -1).float()
