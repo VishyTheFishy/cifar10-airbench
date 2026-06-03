@@ -117,7 +117,7 @@ class Muon(torch.optim.Optimizer):
                         p_mat = p.data.reshape(len(p.data), -1).float()
                         p_spectrum = torch.linalg.svdvals(p_mat)
     
-                    update = targeted_newtonschulz5(g.reshape(len(g), -1)).view(g.shape) # whiten the update
+                    update = zeropower_via_newtonschulz5(g.reshape(len(g), -1)).view(g.shape) # whiten the update
                     
                     if track_svd_this_step:
                         update_mat = update.reshape(len(update), -1).float()
@@ -546,7 +546,7 @@ if __name__ == "__main__":
 
     print_columns(logging_columns_list, is_head=True)
     main("warmup", model)
-    accs = torch.tensor([main(run, model) for run in range(1)])
+    accs = torch.tensor([main(run, model) for run in range(20)])
     print("Mean: %.4f    Std: %.4f" % (accs.mean(), accs.std()))
 
     log_dir = os.path.join("logs", str(uuid.uuid4()))
