@@ -117,7 +117,7 @@ class Muon(torch.optim.Optimizer):
                         p_mat = p.data.reshape(len(p.data), -1).float()
                         p_spectrum = torch.linalg.svdvals(p_mat)
     
-                    update = targeted_newtonschulz5(g.reshape(len(g), -1)).view(g.shape) # whiten the update
+                    update = g #targeted_newtonschulz5(g.reshape(len(g), -1)).view(g.shape) # whiten the update
                     
                     if track_svd_this_step:
                         update_mat = update.reshape(len(update), -1).float()
