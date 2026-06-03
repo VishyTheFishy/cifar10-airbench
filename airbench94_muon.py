@@ -53,7 +53,7 @@ def zeropower_via_newtonschulz5(G, steps=3, eps=1e-7):
         X = X.T
     return X
     
-def targeted_newtonschulz5(G, steps:int = 3, tau: float = 1.):
+def targeted_newtonschulz5(G, steps:int = 3, tau: float = 10.):
     assert G.ndim >= 2
     X = G.bfloat16()
     if G.size(-1) > G.size(-2):
@@ -70,7 +70,7 @@ def targeted_newtonschulz5(G, steps:int = 3, tau: float = 1.):
     if G.size(-1) > G.size(-2):
         nsBot = nsBot.mT
         nsTop = nsTop.mT
-    return nsBot #(nsBot, nsTop)
+    return nsTop #(nsBot, nsTop)
 
 class Muon(torch.optim.Optimizer):
     def __init__(self, params, lr=1e-3, momentum=0, nesterov=False):
