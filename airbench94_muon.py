@@ -70,7 +70,7 @@ def targeted_newtonschulz5(G, steps:int = 3, tau: float = 1.):
     if G.size(-1) > G.size(-2):
         nsBot = nsBot.mT
         nsTop = nsTop.mT
-    return nsTop #(nsBot, nsTop)
+    return nsBot #(nsBot, nsTop)
 
 class Muon(torch.optim.Optimizer):
     def __init__(self, params, lr=1e-3, momentum=0, nesterov=False):
